@@ -2,8 +2,8 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/mujahidabbas/laravel-user-tags.svg?style=flat-square)](https://packagist.org/packages/mujahidabbas/laravel-user-tags)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/mujahidabbas/laravel-user-tags/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/mujahidabbas/laravel-user-tags/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/mujahidabbas/laravel-user-tags/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/mujahidabbas/laravel-user-tags/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/mujahidabbas/laravel-user-tags.svg?style=flat-square)](https://packagist.org/packages/mujahidabbas/laravel-user-tags)
+[![License](https://img.shields.io/packagist/l/mujahidabbas/laravel-user-tags?style=flat-square)](LICENSE.md)
 
 User-scoped tagging for Laravel Eloquent models. Each user has their own private set of tags that are invisible to and independent from other users' tags.
 
