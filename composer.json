@@ -1,0 +1,56 @@
+{
+    "name": "mujahidabbas/laravel-user-tags",
+    "description": "User-scoped tagging for Laravel Eloquent models",
+    "keywords": ["laravel", "tags", "user-tags", "tagging", "eloquent"],
+    "homepage": "https://github.com/MujahidAbbas/laravel-user-tags",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Mujahid Abbas",
+            "email": "mujahidabbas13@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1|^8.2|^8.3",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "larastan/larastan": "^2.0|^3.0",
+        "laravel/pint": "^1.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "pestphp/pest": "^2.0|^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MujahidAbbas\\LaravelUserTags\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MujahidAbbas\\LaravelUserTags\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "analyse": "vendor/bin/phpstan analyse --configuration=phpstan.neon.dist",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MujahidAbbas\\LaravelUserTags\\UserTagsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

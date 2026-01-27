@@ -1,0 +1,31 @@
+.planning/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# PHPUnit
+.phpunit.result.cache
+.phpunit.cache/
+
+# Code style
+.php-cs-fixer.cache
+
+# Static analysis
+phpstan.neon
+
+# Testbench
+testbench.yaml
+
+# Composer lock (not committed for library packages)
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

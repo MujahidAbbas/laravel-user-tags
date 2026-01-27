@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        $tagsTable = config('user-tags.tables.tags', 'user_tags');
+
+        Schema::create(config('user-tags.tables.taggables', 'user_taggables'), function (Blueprint $table) use ($tagsTable) {
+            $table->id();
+            $table->foreignId('tag_id')->constrained($tagsTable)->cascadeOnDelete();
+            $table->morphs('taggable');
+            $table->timestamps();
+
+            $table->unique(['tag_id', 'taggable_id', 'taggable_type']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists(config('user-tags.tables.taggables', 'user_taggables'));
+    }
+};
