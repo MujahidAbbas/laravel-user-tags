@@ -3,14 +3,18 @@
 namespace MujahidAbbas\LaravelUserTags\Traits;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use InvalidArgumentException;
 use MujahidAbbas\LaravelUserTags\Exceptions\NoAuthenticatedUserException;
 use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
+use Stringable;
 
 trait HasUserTags
 {
@@ -75,16 +79,17 @@ trait HasUserTags
      *
      * Creates tags if they don't exist. Uses syncWithoutDetaching to prevent duplicates.
      *
-     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|iterable<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s), in an array or Collection
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
      * @throws TagNotOwnedException
+     * @throws InvalidArgumentException
      */
-    public function attachUserTag(string|array|UserTag $tags, ?Authenticatable $user = null): static
+    public function attachUserTag(string|iterable|Model $tags, ?Authenticatable $user = null): static
     {
         $user = $this->resolveUser($user);
-        $tags = $this->findOrCreateUserTags($tags, $user);
+        $tags = $this->findOrCreateUserTags($this->normalizeUserTags($tags), $user);
 
         $this->userTags()->syncWithoutDetaching($tags->pluck('id'));
 
@@ -97,16 +102,17 @@ trait HasUserTags
      * Does not delete the tag itself, only removes the association.
      * Silently ignores tags that don't exist.
      *
-     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|iterable<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s), in an array or Collection
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
      * @throws TagNotOwnedException
+     * @throws InvalidArgumentException
      */
-    public function detachUserTag(string|array|UserTag $tags, ?Authenticatable $user = null): static
+    public function detachUserTag(string|iterable|Model $tags, ?Authenticatable $user = null): static
     {
         $user = $this->resolveUser($user);
-        $tags = $this->resolveUserTags($tags, $user);
+        $tags = $this->resolveUserTags($this->normalizeUserTags($tags), $user);
 
         $this->userTags()->detach($tags->pluck('id'));
 
@@ -119,15 +125,17 @@ trait HasUserTags
      * Replaces all of this user's tags on this model with exactly those specified.
      * Tags from other users are not affected.
      *
-     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|iterable<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s), in an array or Collection
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
      * @throws TagNotOwnedException
+     * @throws InvalidArgumentException
      */
-    public function syncUserTags(string|array|UserTag $tags, ?Authenticatable $user = null): static
+    public function syncUserTags(string|iterable|Model $tags, ?Authenticatable $user = null): static
     {
         $user = $this->resolveUser($user);
+        $tags = $this->normalizeUserTags($tags);
 
         // A failed attach must not leave the user's tags detached
         $this->getConnection()->transaction(function () use ($tags, $user) {
@@ -164,6 +172,35 @@ trait HasUserTags
         }
 
         return $user;
+    }
+
+    /**
+     * Turn the tag input into a list of tag names and UserTag instances.
+     *
+     * Lists can be arrays or any iterable, such as a Collection, read once. Values
+     * that cast to their JSON, such as another model or a nested Collection, are
+     * rejected: outside strict_types PHP would turn them into a tag name.
+     *
+     * @param  string|iterable<mixed>|Model  $tags
+     * @return list<string|UserTag>
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function normalizeUserTags(string|iterable|Model $tags): array
+    {
+        $normalized = [];
+
+        foreach (is_iterable($tags) ? $tags : [$tags] as $tag) {
+            if ($tag instanceof UserTag) {
+                $normalized[] = $tag;
+            } elseif (is_string($tag) || is_int($tag) || is_float($tag) || ($tag instanceof Stringable && ! $tag instanceof Jsonable)) {
+                $normalized[] = (string) $tag;
+            } else {
+                throw new InvalidArgumentException('Tags must be names or UserTag instances, '.get_debug_type($tag).' given.');
+            }
+        }
+
+        return $normalized;
     }
 
     /**
@@ -305,19 +342,20 @@ trait HasUserTags
     /**
      * Scope to get models having any of the given tags.
      *
-     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|iterable<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s), in an array or Collection
      * @param  Authenticatable|null  $user  Optional user override
      *
      * @throws NoAuthenticatedUserException
      * @throws TagNotOwnedException
+     * @throws InvalidArgumentException
      */
     public function scopeWithAnyUserTags(
         Builder $query,
-        string|array|UserTag $tags,
+        string|iterable|Model $tags,
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
-        $tagIds = $this->resolveTagIds($tags, $user);
+        $tagIds = $this->resolveTagIds($this->normalizeUserTags($tags), $user);
 
         // No matching tags = no results
         if (empty($tagIds)) {
@@ -332,18 +370,21 @@ trait HasUserTags
     /**
      * Scope to get models having all of the given tags.
      *
-     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|iterable<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s), in an array or Collection
      * @param  Authenticatable|null  $user  Optional user override
      *
      * @throws NoAuthenticatedUserException
      * @throws TagNotOwnedException
+     * @throws InvalidArgumentException
      */
     public function scopeWithAllUserTags(
         Builder $query,
-        string|array|UserTag $tags,
+        string|iterable|Model $tags,
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
+        // Normalized once: the input is read twice below, and a generator can't be
+        $tags = $this->normalizeUserTags($tags);
         $tagIds = $this->resolveTagIds($tags, $user);
 
         // If any tag doesn't exist, no model can have "all" of them
@@ -364,19 +405,20 @@ trait HasUserTags
     /**
      * Scope to get models NOT having any of the given tags.
      *
-     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|iterable<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s), in an array or Collection
      * @param  Authenticatable|null  $user  Optional user override
      *
      * @throws NoAuthenticatedUserException
      * @throws TagNotOwnedException
+     * @throws InvalidArgumentException
      */
     public function scopeWithoutUserTags(
         Builder $query,
-        string|array|UserTag $tags,
+        string|iterable|Model $tags,
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
-        $tagIds = $this->resolveTagIds($tags, $user);
+        $tagIds = $this->resolveTagIds($this->normalizeUserTags($tags), $user);
 
         // No matching tags = return all (nothing to exclude)
         if (empty($tagIds)) {
