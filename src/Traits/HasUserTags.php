@@ -34,9 +34,10 @@ trait HasUserTags
     /**
      * Get all user tags attached to this model.
      *
-     * This returns tags from all users. For user-scoped tag operations,
-     * use attachUserTag(), detachUserTag(), or syncUserTags() methods
-     * which filter by the authenticated user.
+     * This returns tags from all users. For one user's tags, use
+     * userTagsFor(). For user-scoped tag operations, use attachUserTag(),
+     * detachUserTag(), or syncUserTags() methods which filter by the
+     * authenticated user.
      */
     public function userTags(): MorphToMany
     {
@@ -47,6 +48,26 @@ trait HasUserTags
             'taggable_id',
             'tag_id'
         )->withTimestamps();
+    }
+
+    /**
+     * Get the tags the given user has attached to this model.
+     *
+     * The user defaults to the authenticated one, which is what lets
+     * with('userTagsFor') eager load it: eager loading calls the method
+     * without arguments. To eager load another user's tags, use
+     * with(['userTags' => fn ($query) => $query->forUser($user)]).
+     *
+     * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
+     *
+     * @throws NoAuthenticatedUserException
+     */
+    public function userTagsFor(?Authenticatable $user = null): MorphToMany
+    {
+        return $this->userTags()->where(
+            $this->getUserTagTableName().'.user_id',
+            $this->resolveUser($user)->getAuthIdentifier()
+        );
     }
 
     /**
