@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-26
+
 ### Fixed
 
 - Passing another user's `UserTag` instance to `attachUserTag()`, `detachUserTag()` or `syncUserTags()` now throws `TagNotOwnedException` instead of acting on that user's tag
@@ -54,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publishable migrations and config
 - `NoAuthenticatedUserException` for missing authentication context
 
-[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/mujahidabbas/laravel-user-tags/releases/tag/v1.0.0

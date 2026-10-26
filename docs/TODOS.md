@@ -1,8 +1,8 @@
 # TODOS
 
 ## Release
-- [ ] Pick the version for the `[Unreleased]` block: 1.2.0 recommended over 1.1.1, because the slug change needs existing rows re-slugged.
-- [ ] Push `fix/isolation-and-tag-matching`, open the PR, merge, tag, check Packagist picked it up.
+- [x] Version: 1.2.0, not 1.1.1, because the slug change needs existing rows re-slugged (Mujahid, 2026-10-26).
+- [ ] Merge the `fix/isolation-and-tag-matching` PR, tag v1.2.0, check Packagist picked it up.
 
 ## Features (not started; the package is not on current-priorities)
 - [ ] `userTagsFor($user)` relation, eager-loadable, so callers stop loading every user's tags and filtering in PHP (the README still shows `$article->userTags->where('user_id', ...)`).
