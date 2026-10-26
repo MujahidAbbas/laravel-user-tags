@@ -12,6 +12,7 @@
 - [x] Version: 1.4.1, a patch: checking owners before creating names changes no API or migration; not a transaction around attach, which would break `createOrFirst()` under concurrent creates on MySQL/MariaDB (Mujahid, 2026-10-26).
 - [x] Released v1.4.1 on 2026-10-26: PR #20 rebase-merged, tag and GitHub Release published, Packagist lists it at `9dffbd6`. The test app runs it: 33 use-case tests pass on SQLite, MySQL and Postgres. The new one, a typed name plus another user's picked tag ID, fails on 1.4.0.
 - [x] Version: 1.4.2, a patch: retrying attach's and sync's transaction once on a unique violation changes no API or migration; attach's new transaction only moves when after-commit listeners fire (Mujahid, 2026-10-27).
+- [x] Released v1.4.2 on 2026-10-27: PR #23 rebase-merged, tag and GitHub Release published, Packagist lists it at `90094f3`. The test app runs it: 36 use-case tests pass on MySQL and Postgres; SQLite skips the 2 double-submit tests, which need a second connection. The 3 new ones fail on 1.4.1: the picked tag deleted meanwhile on all three databases, the existing-tag double submit on MySQL and Postgres, the new-tag double submit on MySQL.
 
 ## Features (the package is not on current-priorities)
 - [x] Read-side features, built 2026-10-26 on branch `read-side-features`: `userTagsFor()`, `UserTag::forUser()` and `containing()`, the `OwnsUserTags` trait (`ownedUserTags()`, not `userTags()`, to avoid a trait collision), and query scopes that accept `UserTag` instances. Design choices are in each commit message.
@@ -21,7 +22,7 @@
 - Parked until someone asks: events, tag metadata (colors), usage stats.
 
 ## Test app
-- `~/Herd/laravel-tags-project` (not a git repo) installs the package from Packagist and holds 33 use-case tests: `php artisan test --compact`. For MySQL or Postgres, prefix `DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=user_tags_usecases DB_USERNAME=root DB_PASSWORD=` (Postgres: `pgsql`, port 5432); both databases exist on Herd's services.
+- `~/Herd/laravel-tags-project` (not a git repo) installs the package from Packagist and holds 36 use-case tests: `php artisan test --compact`. The 2 in `DoubleSubmitTest.php` skip on SQLite. For MySQL or Postgres, prefix `DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=user_tags_usecases DB_USERNAME=root DB_PASSWORD=` (Postgres: `pgsql`, port 5432); both databases exist on Herd's services.
 
 ## Smaller issues
 - [x] README config section was missing the `tag_model` key (2026-10-26).
