@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- On MySQL and MariaDB, tag names that differ only by accents, `ß`/`ss` or emoji (`résumé` and `resume`, `🔥` and `🍕`) were merged into one tag, and `containing()` ignored accents, because `slug` used the connection's collation. The migration now gives `slug` a binary collation. Existing installs need the migration in "Upgrading from 1.3.0" in the README
+
 ## [1.3.0] - 2026-10-26
 
 ### Added

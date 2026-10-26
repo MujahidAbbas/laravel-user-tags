@@ -114,6 +114,8 @@ Tags are user-scoped, so User A's "important" tag is completely separate from Us
 
 Tag names are matched ignoring case and extra whitespace, so `Important`, `important` and ` important ` are the same tag. Punctuation and non-Latin characters are kept: `C++` and `C#` are separate tags, and so are `重要` and `🔥`. Blank names are skipped.
 
+On MySQL and MariaDB this relies on the binary collation the migration gives the `slug` column. Installed before 1.3.1? See [Upgrading from 1.3.0](#upgrading-from-130).
+
 ### Detaching Tags
 
 Use `detachUserTag()` to remove tags from a model. Non-existent tags are silently ignored:
@@ -156,6 +158,17 @@ $tag = UserTag::findOrFail($request->input('tag_id'));
 
 $article->attachUserTag($tag); // Throws TagNotOwnedException unless $tag is the current user's
 $articles = Article::withAnyUserTags($tag)->get(); // Same check
+```
+
+`TagNotOwnedException` has no HTTP response of its own, so an uncaught one is a 500. To answer as if the tag did not exist, map it to a 404 in `bootstrap/app.php`:
+
+```php
+use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+->withExceptions(function (Exceptions $exceptions): void {
+    $exceptions->map(fn (TagNotOwnedException $e) => new NotFoundHttpException(previous: $e));
+})
 ```
 
 ### Deleting Tagged Models
@@ -326,6 +339,32 @@ public function boot(): void
 ```
 
 This ensures stable, clean identifiers in your `user_taggables` table instead of full class paths.
+
+## Upgrading from 1.3.0
+
+Only MySQL and MariaDB installs need this. The `slug` column used the connection's collation, which treats `é` and `e` or `ß` and `ss` as equal, and with Laravel's default `utf8mb4_unicode_ci`, emoji such as `🔥` and `🍕` too. So tagging `resume` attached an existing `résumé` tag, `🍕` attached `🔥`, and `containing()` ignored accents. New installs get a binary collation on `slug`; for an existing install, add this migration:
+
+```php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (! in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'])) {
+            return;
+        }
+
+        Schema::table(config('user-tags.tables.tags', 'user_tags'), function (Blueprint $table) {
+            $table->string('slug')->collation('utf8mb4_bin')->change();
+        });
+    }
+};
+```
+
+It keeps existing rows and indexes. Names that were already merged stay merged: the database never stored the second name, so those need re-tagging by hand.
 
 ## Upgrading from 1.1.0
 
