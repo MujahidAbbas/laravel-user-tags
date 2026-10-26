@@ -160,6 +160,16 @@ $article->attachUserTag($tag); // Throws TagNotOwnedException unless $tag is the
 $articles = Article::withAnyUserTags($tag)->get(); // Same check
 ```
 
+Lists can be arrays or Collections, so several tag IDs from a request get the same check:
+
+```php
+$tags = UserTag::findMany($request->input('tag_ids'));
+
+$article->syncUserTags($tags); // Throws TagNotOwnedException if any of them is another user's
+```
+
+Anything that is neither a tag name nor a `UserTag`, such as another model, a nested list or `null`, throws an `InvalidArgumentException`. Numbers and `Stringable` values such as `str('Work')` are tag names.
+
 `TagNotOwnedException` has no HTTP response of its own, so an uncaught one is a 500. To answer as if the tag did not exist, map it to a 404 in `bootstrap/app.php`:
 
 ```php

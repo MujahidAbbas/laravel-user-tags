@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `attachUserTag()`, `detachUserTag()`, `syncUserTags()` and the query scopes accept a Collection, or any other iterable, of names and `UserTag` instances, for example `UserTag::findMany($ids)`
+
+### Fixed
+
+- In apps without `strict_types` (Laravel's default), a Collection passed to those methods became one tag named after the Collection's JSON. Passing another user's tags this way, for example `syncUserTags(UserTag::findMany($ids))` with IDs from a request, skipped the ownership check and gave the caller a new tag whose name held the other user's tag names; the query scopes silently matched nothing. Another user's tags in a Collection now throw `TagNotOwnedException`
+- A model other than `UserTag`, alone or in a list, became a tag named after its JSON. It now throws `InvalidArgumentException`, as do nested lists, `null` and other values that are not tag names. Numbers and `Stringable` values are still tag names
+
+### Changed
+
+- The `$tags` parameter of these methods is typed `string|iterable|Model` instead of `string|array|UserTag`. A model subclass that overrides one of them needs the new type
+
 ## [1.3.1] - 2026-10-26
 
 ### Fixed
