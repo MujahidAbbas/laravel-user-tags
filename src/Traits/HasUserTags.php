@@ -220,15 +220,19 @@ trait HasUserTags
         $tagClass = $this->getUserTagClassName();
         $tags = Arr::wrap($tags);
 
-        // Instance checks here and below use the base class: with a subclass as tag_model,
-        // UserTag::find() still returns base instances, which would otherwise be cast to a
-        // JSON string and treated as a tag name, skipping the ownership check
+        // Every instance's owner is checked before any name is created, so another user's
+        // tag can't leave the names before it in the user's tags. Instance checks here and
+        // below use the base class: with a subclass as tag_model, UserTag::find() still
+        // returns base instances, which would otherwise be cast to a JSON string and
+        // treated as a tag name, skipping the ownership check
+        collect($tags)
+            ->filter(fn ($tag) => $tag instanceof UserTag)
+            ->each(fn (UserTag $tag) => $this->ensureUserOwnsTag($tag, $user));
+
         return collect($tags)
             ->reject(fn ($tag) => ! $tag instanceof UserTag && $tagClass::slugFromName($tag) === '')
             ->map(function ($tag) use ($tagClass, $user) {
                 if ($tag instanceof UserTag) {
-                    $this->ensureUserOwnsTag($tag, $user);
-
                     return $tag;
                 }
 
