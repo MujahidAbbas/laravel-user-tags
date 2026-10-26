@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for Laravel 13
+- Support for PHP 8.4 and 8.5
+
+### Removed
+
+- Support for Laravel 10 and 11 (both past end of support; use v1.0.0)
+- Support for PHP 8.1
+
 ## [1.0.0] - 2026-01-27
 
 ### Added
