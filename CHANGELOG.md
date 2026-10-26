@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `attachUserTag()` with a tag name before another user's `UserTag` instance, for example `attachUserTag(['new name', $othersTag])`, created `new name` in the caller's tags before throwing `TagNotOwnedException`, and left it attached to nothing. Every instance's owner is now checked before any tag is created. `syncUserTags()` already rolled the tag back, and `detachUserTag()` and the query scopes create no tags
+
 ## [1.4.0] - 2026-10-26
 
 ### Added

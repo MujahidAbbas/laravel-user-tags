@@ -181,6 +181,18 @@ test('attaching another user tag instance throws', function () {
     $this->post->attachUserTag($tagOfA, $this->userB);
 })->throws(TagNotOwnedException::class);
 
+test('a name before another user tag instance throws and creates no tag', function (string $method) {
+    $this->post->attachUserTag('b-tag', $this->userB);
+    $tagOfA = UserTag::create(['user_id' => $this->userA->id, 'name' => 'secret']);
+
+    // The names are created in order, so attach used to create this one before reaching the instance
+    expect(fn () => $this->post->$method(['new name', $tagOfA], $this->userB))
+        ->toThrow(TagNotOwnedException::class);
+
+    expect(UserTag::orderBy('id')->pluck('name')->all())->toBe(['b-tag', 'secret']);
+    expect($this->post->userTags()->pluck('name')->all())->toBe(['b-tag']);
+})->with(['attachUserTag', 'syncUserTags', 'detachUserTag']);
+
 test('syncing another user tag instance throws and leaves tags untouched', function () {
     $this->post->attachUserTag('b-tag', $this->userB);
     $tagOfA = UserTag::create(['user_id' => $this->userA->id, 'name' => 'secret']);
