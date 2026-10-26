@@ -293,7 +293,7 @@ trait HasUserTags
      */
     protected function getUserTagClassName(): string
     {
-        return config('user-tags.tag_model', \MujahidAbbas\LaravelUserTags\Models\UserTag::class);
+        return config('user-tags.tag_model', UserTag::class);
     }
 
     /**

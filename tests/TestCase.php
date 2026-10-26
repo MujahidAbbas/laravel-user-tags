@@ -3,6 +3,7 @@
 namespace MujahidAbbas\LaravelUserTags\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use MujahidAbbas\LaravelUserTags\Tests\Fixtures\User;
 use MujahidAbbas\LaravelUserTags\UserTagsServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -39,6 +40,6 @@ class TestCase extends Orchestra
         ]);
 
         // Configure the user model for testing
-        $app['config']->set('user-tags.user_model', \MujahidAbbas\LaravelUserTags\Tests\Fixtures\User::class);
+        $app['config']->set('user-tags.user_model', User::class);
     }
 }

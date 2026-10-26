@@ -1,5 +1,7 @@
 <?php
 
+use MujahidAbbas\LaravelUserTags\Models\UserTag;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -21,7 +23,7 @@ return [
     | the default UserTag model to add custom functionality.
     |
     */
-    'tag_model' => \MujahidAbbas\LaravelUserTags\Models\UserTag::class,
+    'tag_model' => UserTag::class,
 
     /*
     |--------------------------------------------------------------------------
