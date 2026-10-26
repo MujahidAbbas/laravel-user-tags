@@ -36,8 +36,10 @@ If you've used [spatie/laravel-tags](https://github.com/spatie/laravel-tags) and
 
 ## Requirements
 
-- PHP 8.1, 8.2, or 8.3
-- Laravel 10.x, 11.x, or 12.x
+- PHP 8.2 or higher (Laravel 13 needs PHP 8.3+)
+- Laravel 12.x or 13.x
+
+Using Laravel 10 or 11? Install v1.0.0: `composer require mujahidabbas/laravel-user-tags:^1.0`
 
 ## Installation
 

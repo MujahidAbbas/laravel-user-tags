@@ -4,4 +4,6 @@ includes:
 parameters:
     paths:
         - src/
+        # Uses HasUserTags, so PHPStan analyses the trait instead of skipping it as unused
+        - tests/Fixtures/Post.php
     level: 5
