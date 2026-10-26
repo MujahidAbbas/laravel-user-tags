@@ -2,6 +2,7 @@
 
 use Illuminate\Database\QueryException;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
+use MujahidAbbas\LaravelUserTags\Tests\Fixtures\Post;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\User;
 
 beforeEach(function () {
@@ -14,7 +15,7 @@ test('auto-generates slug from name on create', function () {
         'name' => 'My Important Tag',
     ]);
 
-    expect($tag->slug)->toBe('my-important-tag');
+    expect($tag->slug)->toBe('my important tag');
 });
 
 test('does not override provided slug', function () {
@@ -75,4 +76,39 @@ test('allows same slug for different users', function () {
 
 test('uses configured table name', function () {
     expect((new UserTag)->getTable())->toBe('user_tags');
+});
+
+test('names that differ only by punctuation stay separate tags', function () {
+    $post = Post::create(['title' => 'P']);
+
+    $post->attachUserTag(['C++', 'C#'], $this->user);
+
+    expect(UserTag::pluck('name')->sort()->values()->all())->toBe(['C#', 'C++']);
+});
+
+test('non-latin and emoji names get their own tags', function () {
+    $post = Post::create(['title' => 'P']);
+
+    $post->attachUserTag(['重要', '🔥', 'اہم'], $this->user);
+
+    expect(UserTag::count())->toBe(3);
+});
+
+test('renaming a tag updates its slug', function () {
+    $post = Post::create(['title' => 'P']);
+    $post->attachUserTag('Old Name', $this->user);
+
+    UserTag::first()->update(['name' => 'New Name']);
+
+    expect(UserTag::first()->slug)->toBe('new name');
+    expect(Post::withAnyUserTags(['New Name'], $this->user)->count())->toBe(1);
+    expect(Post::withAnyUserTags(['Old Name'], $this->user)->count())->toBe(0);
+});
+
+test('renaming with an explicit slug keeps that slug', function () {
+    $tag = UserTag::create(['user_id' => $this->user->id, 'name' => 'Before']);
+
+    $tag->update(['name' => 'After', 'slug' => 'custom']);
+
+    expect($tag->fresh()->slug)->toBe('custom');
 });

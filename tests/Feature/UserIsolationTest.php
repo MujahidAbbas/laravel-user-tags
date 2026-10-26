@@ -1,5 +1,6 @@
 <?php
 
+use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\Post;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\User;
@@ -172,4 +173,30 @@ test('userTags relationship returns all users tags but operations are scoped', f
     $userBTags = $this->post->userTags()->where('user_id', $this->userB->id)->get();
     expect($userBTags)->toHaveCount(1);
     expect($userBTags->first()->name)->toBe('b-new');
+});
+
+test('attaching another user tag instance throws', function () {
+    $tagOfA = UserTag::create(['user_id' => $this->userA->id, 'name' => 'secret']);
+
+    $this->post->attachUserTag($tagOfA, $this->userB);
+})->throws(TagNotOwnedException::class);
+
+test('syncing another user tag instance throws and leaves tags untouched', function () {
+    $this->post->attachUserTag('b-tag', $this->userB);
+    $tagOfA = UserTag::create(['user_id' => $this->userA->id, 'name' => 'secret']);
+
+    expect(fn () => $this->post->syncUserTags([$tagOfA], $this->userB))
+        ->toThrow(TagNotOwnedException::class);
+
+    expect($this->post->userTags()->pluck('name')->all())->toBe(['b-tag']);
+});
+
+test('detaching another user tag instance throws and keeps the attachment', function () {
+    $this->post->attachUserTag('mine', $this->userA);
+    $tagOfA = UserTag::where('user_id', $this->userA->id)->first();
+
+    expect(fn () => $this->post->detachUserTag($tagOfA, $this->userB))
+        ->toThrow(TagNotOwnedException::class);
+
+    expect($this->post->userTags()->count())->toBe(1);
 });

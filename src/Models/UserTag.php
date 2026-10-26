@@ -50,11 +50,23 @@ class UserTag extends Model
      */
     protected static function booted(): void
     {
-        static::creating(function (UserTag $tag) {
-            if (empty($tag->slug)) {
-                $tag->slug = Str::slug($tag->name);
+        static::saving(function (UserTag $tag) {
+            // Regenerate on rename too, unless a slug was set explicitly in the same save
+            if (empty($tag->slug) || ($tag->isDirty('name') && ! $tag->isDirty('slug'))) {
+                $tag->slug = static::slugFromName($tag->name);
             }
         });
+    }
+
+    /**
+     * Get the slug used to match a tag name within a user's tags.
+     *
+     * Case and surrounding/repeated whitespace are ignored. Punctuation and
+     * non-Latin characters are kept, so "C++" and "C#" stay separate tags.
+     */
+    public static function slugFromName(string $name): string
+    {
+        return Str::lower(Str::squish($name));
     }
 
     /**

@@ -112,6 +112,8 @@ $article->attachUserTag('important', $user);
 
 Tags are user-scoped, so User A's "important" tag is completely separate from User B's "important" tag.
 
+Tag names are matched ignoring case and extra whitespace, so `Important`, `important` and ` important ` are the same tag. Punctuation and non-Latin characters are kept: `C++` and `C#` are separate tags, and so are `重要` and `🔥`. Blank names are skipped.
+
 ### Detaching Tags
 
 Use `detachUserTag()` to remove tags from a model. Non-existent tags are silently ignored:
@@ -142,6 +144,22 @@ $article->syncUserTags(['priority', 'work'], $user);
 ```
 
 **Important:** `syncUserTags()` only affects the specified user's tags. Other users' tags on the same model remain untouched.
+
+### Passing Tag Instances
+
+`attachUserTag()`, `detachUserTag()` and `syncUserTags()` also accept `UserTag` instances. An instance that belongs to a different user throws a `TagNotOwnedException`, so a tag ID taken from a request can't touch another user's tags:
+
+```php
+use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
+
+$tag = UserTag::findOrFail($request->input('tag_id'));
+
+$article->attachUserTag($tag); // Throws TagNotOwnedException unless $tag is the current user's
+```
+
+### Deleting Tagged Models
+
+Deleting a model removes its tag attachments; the tags themselves stay. Models using `SoftDeletes` keep their attachments until they are force deleted, so a restore brings the tags back.
 
 ### Accessing Tags
 
@@ -239,6 +257,20 @@ public function boot(): void
 ```
 
 This ensures stable, clean identifiers in your `user_taggables` table instead of full class paths.
+
+## Upgrading from 1.1.0
+
+The `slug` column now stores the lowercased name with extra whitespace removed, instead of `Str::slug()` output. Re-slug existing rows once after upgrading, for example from a migration, or names you tagged before will create duplicate tags:
+
+```php
+use MujahidAbbas\LaravelUserTags\Models\UserTag;
+
+UserTag::query()->lazyById()->each(
+    fn (UserTag $tag) => $tag->update(['slug' => UserTag::slugFromName($tag->name)])
+);
+```
+
+This overwrites any slug you set by hand.
 
 ## Alternatives
 
