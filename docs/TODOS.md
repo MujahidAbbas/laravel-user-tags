@@ -6,6 +6,7 @@
 - [x] Version: 1.3.0, minor because everything is additive; the subclass ownership fix rides along rather than a 1.2.1 patch (Mujahid, 2026-10-26).
 - [x] Released v1.3.0 on 2026-10-26: PR #9 rebase-merged, tag and GitHub Release published, Packagist lists it at `346a8c1`.
 - [x] Version: 1.3.1, a patch: the MySQL collation fix changes no API; existing installs opt in with the README migration (Mujahid, 2026-10-26).
+- [x] Released v1.3.1 on 2026-10-26: PR #12 rebase-merged, tag and GitHub Release published, Packagist lists it at `6d79b70`. The test app runs it: 27 use-case tests pass on SQLite, MySQL and Postgres.
 
 ## Features (the package is not on current-priorities)
 - [x] Read-side features, built 2026-10-26 on branch `read-side-features`: `userTagsFor()`, `UserTag::forUser()` and `containing()`, the `OwnsUserTags` trait (`ownedUserTags()`, not `userTags()`, to avoid a trait collision), and query scopes that accept `UserTag` instances. Design choices are in each commit message.
