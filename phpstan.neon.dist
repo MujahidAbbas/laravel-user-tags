@@ -6,4 +6,6 @@ parameters:
         - src/
         # Uses HasUserTags, so PHPStan analyses the trait instead of skipping it as unused
         - tests/Fixtures/Post.php
+        # Uses OwnsUserTags alongside HasUserTags, for the same reason
+        - tests/Fixtures/TaggableUser.php
     level: 5
