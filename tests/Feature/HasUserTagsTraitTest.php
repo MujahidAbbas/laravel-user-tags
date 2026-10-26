@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use MujahidAbbas\LaravelUserTags\Exceptions\NoAuthenticatedUserException;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
@@ -211,3 +212,14 @@ test('sync keeps existing tags when the attach fails', function () {
 
     expect($this->post->userTags()->pluck('name')->all())->toBe(['keep-me']);
 });
+
+test('a deleted tag instance throws and creates no tag', function (string $method) {
+    $deleted = UserTag::create(['user_id' => $this->user->id, 'name' => 'deleted']);
+    $deleted->delete();
+
+    // The names are created first, so attach used to create this one before the foreign key failed
+    expect(fn () => $this->post->$method(['new name', $deleted], $this->user))
+        ->toThrow(QueryException::class);
+
+    expect(UserTag::pluck('name')->all())->toBe([]);
+})->with(['attachUserTag', 'syncUserTags']);

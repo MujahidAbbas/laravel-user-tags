@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Two requests writing the same tags to a model at once, such as a double-submitted form, could make `attachUserTag()` or `syncUserTags()` throw `UniqueConstraintViolationException`. On MySQL and MariaDB, `syncUserTags()` failed when the other request created the same new tag name first: under REPEATABLE READ, their default, sync's transaction can't see the other request's tag. On every database, both methods failed when the other request attached the same tag between reading the model's tags and inserting the attachment. Both now retry their transaction once when that happens. Inside your own transaction they can't retry, so on MySQL and MariaDB the exception still reaches you, as before
+- `attachUserTag()` with a tag name and a stale instance of one of the user's deleted tags, for example `attachUserTag(['new name', $deletedTag])`, created `new name` before the foreign key failed, and left it attached to nothing. Attach now runs in a transaction, as `syncUserTags()` does, so a failed attach creates no tags
+
 ## [1.4.1] - 2026-10-26
 
 ### Fixed
