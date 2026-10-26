@@ -11,6 +11,7 @@
 - [x] Released v1.4.0 on 2026-10-26: PR #17 rebase-merged, tag and GitHub Release published, Packagist lists it at `3e3fb48`. The test app runs it: 32 use-case tests pass on SQLite, MySQL and Postgres, 5 of them new for Collections, rejected models and the release notes' query for JSON-named tags (that query also caught junk made by real 1.3.1 calls). No security advisory; release notes only, as for 1.3.0 (Mujahid, 2026-10-26).
 - [x] Version: 1.4.1, a patch: checking owners before creating names changes no API or migration; not a transaction around attach, which would break `createOrFirst()` under concurrent creates on MySQL/MariaDB (Mujahid, 2026-10-26).
 - [x] Released v1.4.1 on 2026-10-26: PR #20 rebase-merged, tag and GitHub Release published, Packagist lists it at `9dffbd6`. The test app runs it: 33 use-case tests pass on SQLite, MySQL and Postgres. The new one, a typed name plus another user's picked tag ID, fails on 1.4.0.
+- [x] Version: 1.4.2, a patch: retrying attach's and sync's transaction once on a unique violation changes no API or migration; attach's new transaction only moves when after-commit listeners fire (Mujahid, 2026-10-27).
 
 ## Features (the package is not on current-priorities)
 - [x] Read-side features, built 2026-10-26 on branch `read-side-features`: `userTagsFor()`, `UserTag::forUser()` and `containing()`, the `OwnsUserTags` trait (`ownedUserTags()`, not `userTags()`, to avoid a trait collision), and query scopes that accept `UserTag` instances. Design choices are in each commit message.
