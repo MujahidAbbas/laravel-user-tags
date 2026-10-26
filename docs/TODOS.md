@@ -20,12 +20,13 @@
 
 ## Smaller issues
 - [ ] README config section is missing the `tag_model` key.
-- [ ] `NoAuthenticatedUserException::render()` always returns 401 JSON, even for web requests; the usual cause is a job or command with no user passed, which is a developer error.
 - [x] With `tag_model` set to a subclass, a base `UserTag` instance skipped the ownership check and became a tag named after its JSON, not a TypeError: models cast to string outside strict_types. Fixed on `read-side-features` by checking against the base class (2026-10-26).
 - [ ] Any other object in a tag array (say `attachUserTag([$post])`) is still cast to its JSON and becomes a tag name. Rejecting values that are neither strings nor `UserTag` would close it; developer error, not an isolation issue.
-- [ ] `findOrCreateUserTags()` runs one query per tag name; fine at current scale.
 - [x] On MySQL/MariaDB, `résumé`/`resume`, `straße`/`strasse` and `🔥`/`🍕` merged into one tag (slug compared by collation). Fixed with a binary slug collation plus an upgrade migration in the README, and a MySQL CI job (2026-10-26).
 - [x] Another user's tag ID from a request was a 500: the README now shows mapping `TagNotOwnedException` to a 404.
-- [ ] Postgres: `enforces unique slug per user constraint` fails in the full suite only, because Postgres aborts the wrapping transaction after the expected error. Wrap that insert in a savepoint before adding a Postgres CI job.
-- [ ] MariaDB isn't tested anywhere; the stub's `mariadb` branch only runs for apps on Laravel's `mariadb` driver.
-- [ ] `tests/Fixtures/User.php` `newFactory()` fails PHPStan `return.type` (anonymous `Factory` vs `Factory<static>`). Harmless while the fixture stays out of the analysed paths.
+- [x] Postgres: `enforces unique slug per user constraint` failed in the full suite only, because Postgres aborts the wrapping transaction after the expected error. The duplicate insert now runs in a savepoint, and a Postgres 18 CI job runs the suite (2026-10-26).
+- [x] MariaDB wasn't tested anywhere. A MariaDB 12.3 CI job now runs the suite on Laravel's `mariadb` driver, so the stub's `mariadb` branch runs; without the binary slug collation, four tests fail there (2026-10-26).
+- Parked until someone asks (Mujahid, 2026-10-26):
+  - `NoAuthenticatedUserException::render()` always returns 401 JSON, even for web requests. Only HTTP requests render it, it is still logged, and it fires only on a code bug, so the gain would be an error page instead of a JSON 401.
+  - `findOrCreateUserTags()` runs one query per tag name. `firstOrCreate` already survives concurrent creates through `createOrFirst`; batching would have to solve that again, for no visible gain at 1-10 tags per call.
+  - `tests/Fixtures/User.php` `newFactory()` fails PHPStan `return.type` (anonymous `Factory` vs `Factory<static>`). Harmless while the fixture stays out of the analysed paths.
