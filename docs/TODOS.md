@@ -11,7 +11,7 @@
 ## Features (the package is not on current-priorities)
 - [x] Read-side features, built 2026-10-26 on branch `read-side-features`: `userTagsFor()`, `UserTag::forUser()` and `containing()`, the `OwnsUserTags` trait (`ownedUserTags()`, not `userTags()`, to avoid a trait collision), and query scopes that accept `UserTag` instances. Design choices are in each commit message.
 - [x] PR #7 rebase-merged on 2026-10-26; main at `38ceff3`, CI green on the branch head before merge.
-- [ ] Scopes and write methods don't accept a Collection (spatie/laravel-tags takes `ArrayAccess`); callers pass `->all()` for now.
+- [x] Scopes and write methods didn't accept a Collection. Worse than a missing feature: outside `strict_types` PHP cast it to its JSON, so another user's tags passed as a Collection skipped `TagNotOwnedException` and became a tag name. They now take any iterable, read once; `string|iterable|Model` chosen so a model passed alone is caught too (Mujahid, 2026-10-26).
 - [ ] Document UUID/ULID setups: the stubs use `foreignId('user_id')->constrained()` (assumes a bigint `users` table, ignores `user_model`) and `morphs()` (bigint taggable ids).
 - Parked until someone asks: events, tag metadata (colors), usage stats.
 
@@ -21,7 +21,8 @@
 ## Smaller issues
 - [ ] README config section is missing the `tag_model` key.
 - [x] With `tag_model` set to a subclass, a base `UserTag` instance skipped the ownership check and became a tag named after its JSON, not a TypeError: models cast to string outside strict_types. Fixed on `read-side-features` by checking against the base class (2026-10-26).
-- [ ] Any other object in a tag array (say `attachUserTag([$post])`) is still cast to its JSON and becomes a tag name. Rejecting values that are neither strings nor `UserTag` would close it; developer error, not an isolation issue.
+- [x] Any other object in a tag array (say `attachUserTag([$post])`) was cast to its JSON and became a tag name. Values that cast to JSON (`Jsonable`), nested lists and `null` now throw `InvalidArgumentException`, alone or in a list; numbers and `Stringable` values stay tag names (2026-10-26).
+- [ ] `attachUserTag(['new name', $othersTag])` creates `new name` in the caller's tags before the `TagNotOwnedException`, so an unattached tag is left behind. Only the caller's own tags; `syncUserTags()` rolls it back in its transaction. Checking every instance's owner before creating names would close it.
 - [x] On MySQL/MariaDB, `résumé`/`resume`, `straße`/`strasse` and `🔥`/`🍕` merged into one tag (slug compared by collation). Fixed with a binary slug collation plus an upgrade migration in the README, and a MySQL CI job (2026-10-26).
 - [x] Another user's tag ID from a request was a 500: the README now shows mapping `TagNotOwnedException` to a 404.
 - [x] Postgres: `enforces unique slug per user constraint` failed in the full suite only, because Postgres aborts the wrapping transaction after the expected error. The duplicate insert now runs in a savepoint, and a Postgres 18 CI job runs the suite (2026-10-26).
