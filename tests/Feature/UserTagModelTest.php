@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\Post;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\User;
@@ -45,11 +46,13 @@ test('enforces unique slug per user constraint', function () {
         'slug' => 'duplicate',
     ]);
 
-    UserTag::create([
+    // Inside a savepoint: Postgres aborts the whole transaction after an error, and
+    // RefreshDatabase wraps each test in one, so the teardown queries would fail too
+    DB::transaction(fn () => UserTag::create([
         'user_id' => $this->user->id,
         'name' => 'Second',
         'slug' => 'duplicate',
-    ]);
+    ]));
 })->throws(QueryException::class);
 
 test('allows same slug for different users', function () {
