@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-26
+
 ### Added
 
 - `attachUserTag()`, `detachUserTag()`, `syncUserTags()` and the query scopes accept a Collection, or any other iterable, of names and `UserTag` instances, for example `UserTag::findMany($ids)`
@@ -88,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publishable migrations and config
 - `NoAuthenticatedUserException` for missing authentication context
 
-[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.1.0...v1.2.0
