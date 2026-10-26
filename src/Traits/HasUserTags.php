@@ -2,11 +2,13 @@
 
 namespace MujahidAbbas\LaravelUserTags\Traits;
 
+use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -89,9 +91,14 @@ trait HasUserTags
     public function attachUserTag(string|iterable|Model $tags, ?Authenticatable $user = null): static
     {
         $user = $this->resolveUser($user);
-        $tags = $this->findOrCreateUserTags($this->normalizeUserTags($tags), $user);
+        $tags = $this->normalizeUserTags($tags);
 
-        $this->userTags()->syncWithoutDetaching($tags->pluck('id'));
+        // A failed attach must not leave created tags behind
+        $this->runUserTagTransaction(function () use ($tags, $user) {
+            $tags = $this->findOrCreateUserTags($tags, $user);
+
+            $this->userTags()->syncWithoutDetaching($tags->pluck('id'));
+        });
 
         return $this;
     }
@@ -138,7 +145,7 @@ trait HasUserTags
         $tags = $this->normalizeUserTags($tags);
 
         // A failed attach must not leave the user's tags detached
-        $this->getConnection()->transaction(function () use ($tags, $user) {
+        $this->runUserTagTransaction(function () use ($tags, $user) {
             $newTags = $this->findOrCreateUserTags($tags, $user);
 
             // Get existing tag IDs for this user on this model
@@ -154,6 +161,31 @@ trait HasUserTags
         });
 
         return $this;
+    }
+
+    /**
+     * Run a tag write in a transaction, retried once when another request wrote the same row first.
+     *
+     * MySQL and MariaDB default to REPEATABLE READ, where a transaction can't see rows another
+     * request commits after its first read. A double-submitted form then hits the unique index
+     * on a tag or attachment that firstOrCreate() and the pivot read couldn't find. A locking
+     * read doesn't help: MariaDB's snapshot isolation rejects it. The retry's new transaction
+     * sees the row, and on Postgres it covers a commit between the pivot read and the insert.
+     * Inside the caller's own transaction the snapshot is the caller's, so it can't retry.
+     */
+    protected function runUserTagTransaction(Closure $callback): void
+    {
+        $connection = $this->getConnection();
+
+        try {
+            $connection->transaction($callback);
+        } catch (UniqueConstraintViolationException $e) {
+            if ($connection->transactionLevel() > 0) {
+                throw $e;
+            }
+
+            $connection->transaction($callback);
+        }
     }
 
     /**
