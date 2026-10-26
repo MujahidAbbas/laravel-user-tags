@@ -2,6 +2,7 @@
 
 namespace MujahidAbbas\LaravelUserTags\Tests\Fixtures;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -19,11 +20,11 @@ class User extends Authenticatable
     /**
      * Create a new factory instance for the model.
      *
-     * @return \Illuminate\Database\Eloquent\Factories\Factory<static>
+     * @return Factory<static>
      */
     protected static function newFactory()
     {
-        return new class extends \Illuminate\Database\Eloquent\Factories\Factory
+        return new class extends Factory
         {
             protected $model = User::class;
 
