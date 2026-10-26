@@ -8,6 +8,7 @@
 - [x] Version: 1.3.1, a patch: the MySQL collation fix changes no API; existing installs opt in with the README migration (Mujahid, 2026-10-26).
 - [x] Released v1.3.1 on 2026-10-26: PR #12 rebase-merged, tag and GitHub Release published, Packagist lists it at `6d79b70`. The test app runs it: 27 use-case tests pass on SQLite, MySQL and Postgres.
 - [x] Version: 1.4.0, minor: Collection input is new API; the Collection ownership fix rides along rather than a 1.3.2 patch, as the subclass fix did in 1.3.0 (Mujahid, 2026-10-26).
+- [x] Released v1.4.0 on 2026-10-26: PR #17 rebase-merged, tag and GitHub Release published, Packagist lists it at `3e3fb48`. The test app runs it: 32 use-case tests pass on SQLite, MySQL and Postgres, 5 of them new for Collections, rejected models and the release notes' query for JSON-named tags (that query also caught junk made by real 1.3.1 calls). No security advisory; release notes only, as for 1.3.0 (Mujahid, 2026-10-26).
 
 ## Features (the package is not on current-priorities)
 - [x] Read-side features, built 2026-10-26 on branch `read-side-features`: `userTagsFor()`, `UserTag::forUser()` and `containing()`, the `OwnsUserTags` trait (`ownedUserTags()`, not `userTags()`, to avoid a trait collision), and query scopes that accept `UserTag` instances. Design choices are in each commit message.
@@ -17,7 +18,7 @@
 - Parked until someone asks: events, tag metadata (colors), usage stats.
 
 ## Test app
-- `~/Herd/laravel-tags-project` (not a git repo) installs the package from Packagist and holds 27 use-case tests: `php artisan test --compact`. For MySQL or Postgres, prefix `DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=user_tags_usecases DB_USERNAME=root DB_PASSWORD=` (Postgres: `pgsql`, port 5432); both databases exist on Herd's services.
+- `~/Herd/laravel-tags-project` (not a git repo) installs the package from Packagist and holds 32 use-case tests: `php artisan test --compact`. For MySQL or Postgres, prefix `DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=user_tags_usecases DB_USERNAME=root DB_PASSWORD=` (Postgres: `pgsql`, port 5432); both databases exist on Herd's services.
 
 ## Smaller issues
 - [x] README config section was missing the `tag_model` key (2026-10-26).
