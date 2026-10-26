@@ -1,5 +1,6 @@
 <?php
 
+use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\Post;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\User;
 
@@ -127,3 +128,51 @@ test('withAllUserTags matches names that differ only by case', function () {
 
     expect($results->pluck('id')->all())->toBe([$this->post1->id]);
 });
+
+// UserTag instances
+
+test('withAnyUserTags accepts a tag instance', function () {
+    $this->post1->attachUserTag('important', $this->user);
+    $this->post2->attachUserTag('other', $this->user);
+    $tag = $this->user->ownedUserTags()->firstWhere('name', 'important');
+
+    $results = Post::withAnyUserTags($tag, $this->user)->get();
+
+    expect($results->pluck('id')->all())->toBe([$this->post1->id]);
+});
+
+test('withAllUserTags accepts instances mixed with names', function () {
+    $this->post1->attachUserTag(['priority', 'review'], $this->user);
+    $this->post2->attachUserTag('priority', $this->user);
+    $tag = $this->user->ownedUserTags()->firstWhere('name', 'priority');
+
+    $results = Post::withAllUserTags([$tag, 'review'], $this->user)->get();
+
+    expect($results->pluck('id')->all())->toBe([$this->post1->id]);
+});
+
+test('withAllUserTags counts a tag passed as an instance and by name once', function () {
+    $this->post1->attachUserTag('important', $this->user);
+    $tag = $this->user->ownedUserTags()->firstWhere('name', 'important');
+
+    $results = Post::withAllUserTags([$tag, 'Important'], $this->user)->get();
+
+    expect($results->pluck('id')->all())->toBe([$this->post1->id]);
+});
+
+test('withoutUserTags accepts a tag instance', function () {
+    $this->post1->attachUserTag('spam', $this->user);
+    $tag = $this->user->ownedUserTags()->firstWhere('name', 'spam');
+
+    $results = Post::withoutUserTags($tag, $this->user)->orderBy('id')->get();
+
+    expect($results->pluck('id')->all())->toBe([$this->post2->id, $this->post3->id]);
+});
+
+test('scopes throw for another user tag instance', function (string $scope) {
+    $userB = User::factory()->create();
+    $this->post1->attachUserTag('important', $userB);
+    $tagOfB = $userB->ownedUserTags()->first();
+
+    Post::$scope($tagOfB, $this->user)->get();
+})->with(['withAnyUserTags', 'withAllUserTags', 'withoutUserTags'])->throws(TagNotOwnedException::class);

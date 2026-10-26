@@ -248,17 +248,17 @@ trait HasUserTags
     }
 
     /**
-     * Convert tag names to their distinct, non-blank slugs.
+     * Convert tag names and instances to their distinct, non-blank slugs.
      *
-     * @param  string|array<string>  $tags
+     * @param  string|array<string|UserTag>|UserTag  $tags
      * @return array<string>
      */
-    protected function resolveTagSlugs(string|array $tags): array
+    protected function resolveTagSlugs(string|array|UserTag $tags): array
     {
         $tagClass = $this->getUserTagClassName();
 
         return collect(Arr::wrap($tags))
-            ->map(fn ($tag) => $tagClass::slugFromName($tag))
+            ->map(fn ($tag) => $tag instanceof $tagClass ? $tag->slug : $tagClass::slugFromName($tag))
             ->reject(fn ($slug) => $slug === '')
             ->unique()
             ->values()
@@ -266,17 +266,26 @@ trait HasUserTags
     }
 
     /**
-     * Resolve tag names to IDs for the given user.
+     * Resolve tag names and instances to IDs for the given user.
      *
      * Used by query scopes to convert user input to efficient ID-based queries.
      * Returns empty array if tags input is empty or no matching tags found.
      *
-     * @param  string|array<string>  $tags
+     * @param  string|array<string|UserTag>|UserTag  $tags
      * @return array<int>
+     *
+     * @throws TagNotOwnedException
      */
-    protected function resolveTagIds(string|array $tags, Authenticatable $user): array
+    protected function resolveTagIds(string|array|UserTag $tags, Authenticatable $user): array
     {
         $tagClass = $this->getUserTagClassName();
+
+        collect(Arr::wrap($tags))
+            ->filter(fn ($tag) => $tag instanceof $tagClass)
+            ->each(fn (UserTag $tag) => $this->ensureUserOwnsTag($tag, $user));
+
+        // Instances resolve through their slug like names do, so a tag passed both
+        // ways counts once, and every ID comes from a query limited to the user
         $slugs = $this->resolveTagSlugs($tags);
 
         if (empty($slugs)) {
@@ -293,14 +302,15 @@ trait HasUserTags
     /**
      * Scope to get models having any of the given tags.
      *
-     * @param  string|array<string>  $tags  Tag names
+     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
      * @param  Authenticatable|null  $user  Optional user override
      *
      * @throws NoAuthenticatedUserException
+     * @throws TagNotOwnedException
      */
     public function scopeWithAnyUserTags(
         Builder $query,
-        string|array $tags,
+        string|array|UserTag $tags,
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
@@ -319,14 +329,15 @@ trait HasUserTags
     /**
      * Scope to get models having all of the given tags.
      *
-     * @param  string|array<string>  $tags  Tag names
+     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
      * @param  Authenticatable|null  $user  Optional user override
      *
      * @throws NoAuthenticatedUserException
+     * @throws TagNotOwnedException
      */
     public function scopeWithAllUserTags(
         Builder $query,
-        string|array $tags,
+        string|array|UserTag $tags,
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
@@ -350,14 +361,15 @@ trait HasUserTags
     /**
      * Scope to get models NOT having any of the given tags.
      *
-     * @param  string|array<string>  $tags  Tag names
+     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
      * @param  Authenticatable|null  $user  Optional user override
      *
      * @throws NoAuthenticatedUserException
+     * @throws TagNotOwnedException
      */
     public function scopeWithoutUserTags(
         Builder $query,
-        string|array $tags,
+        string|array|UserTag $tags,
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
