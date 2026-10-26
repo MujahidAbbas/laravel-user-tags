@@ -147,7 +147,7 @@ $article->syncUserTags(['priority', 'work'], $user);
 
 ### Passing Tag Instances
 
-`attachUserTag()`, `detachUserTag()` and `syncUserTags()` also accept `UserTag` instances. An instance that belongs to a different user throws a `TagNotOwnedException`, so a tag ID taken from a request can't touch another user's tags:
+`attachUserTag()`, `detachUserTag()` and `syncUserTags()` also accept `UserTag` instances, and so do the [query scopes](#querying-by-tags). An instance that belongs to a different user throws a `TagNotOwnedException`, so a tag ID taken from a request can't touch or reveal another user's tags:
 
 ```php
 use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
@@ -155,6 +155,7 @@ use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
 $tag = UserTag::findOrFail($request->input('tag_id'));
 
 $article->attachUserTag($tag); // Throws TagNotOwnedException unless $tag is the current user's
+$articles = Article::withAnyUserTags($tag)->get(); // Same check
 ```
 
 ### Deleting Tagged Models
@@ -166,14 +167,36 @@ Deleting a model removes its tag attachments; the tags themselves stay. Models u
 The `userTags()` relationship returns all tags attached to a model (from all users):
 
 ```php
-// Get all tags on this model
+// Get all tags on this model, from every user
 $tags = $article->userTags;
 
 // Eager load tags
 $articles = Article::with('userTags')->get();
+```
 
-// Filter to a specific user's tags
-$myTags = $article->userTags->where('user_id', auth()->id());
+Use `userTagsFor()` for one user's tags. It defaults to the authenticated user:
+
+```php
+// The authenticated user's tags on this model
+$myTags = $article->userTagsFor;
+
+// A specific user's tags
+$tags = $article->userTagsFor($user)->get();
+
+// Eager load the authenticated user's tags
+$articles = Article::with('userTagsFor')->get();
+
+foreach ($articles as $article) {
+    $article->userTagsFor; // No extra query
+}
+```
+
+Eager loading calls the relationship without arguments, so `with('userTagsFor')` always uses the authenticated user and throws a `NoAuthenticatedUserException` when there is none. To eager load another user's tags, for example in a queued job, constrain `userTags` instead:
+
+```php
+$articles = Article::with(['userTags' => fn ($query) => $query->forUser($user)])->get();
+
+$article->userTags; // Only $user's tags
 ```
 
 ### Querying by Tags
@@ -197,9 +220,55 @@ $posts = Post::withAnyUserTags(['tech', 'science'])
 
 // With a specific user (useful in queues, commands)
 $posts = Post::withAnyUserTags(['important'], $user)->get();
+
+// With tag instances, alone or mixed with names
+$posts = Post::withAllUserTags([$tag, 'urgent'])->get();
 ```
 
 **Note:** Query scopes respect user isolation - User A's scope queries only consider User A's tags.
+
+### Listing and Searching a User's Tags
+
+Add the `OwnsUserTags` trait to your User model to get all of a user's tags, including ones not attached to anything:
+
+```php
+use MujahidAbbas\LaravelUserTags\Traits\OwnsUserTags;
+
+class User extends Authenticatable
+{
+    use OwnsUserTags;
+}
+
+$tags = $user->ownedUserTags;
+
+// Create a tag without attaching it
+$user->ownedUserTags()->create(['name' => 'Read Later']);
+```
+
+The relationship is called `ownedUserTags()` so a User model can also use `HasUserTags`, for example to let users tag each other, without the two traits colliding.
+
+Without the trait, `UserTag::forUser()` gives the same query:
+
+```php
+use MujahidAbbas\LaravelUserTags\Models\UserTag;
+
+$tags = UserTag::forUser($user)->orderBy('name')->get();
+```
+
+Search a user's tags by name with `containing()`, for example for autocomplete. Like tag matching, it ignores case and extra whitespace:
+
+```php
+$suggestions = $user->ownedUserTags()
+    ->containing($term)
+    ->orderBy('name')
+    ->limit(10)
+    ->get();
+
+// Same, without the trait
+$suggestions = UserTag::forUser($user)->containing($term)->get();
+```
+
+`containing()` does not limit the query to a user on its own: `UserTag::containing('imp')` searches every user's tags, so always chain it after `ownedUserTags()` or `forUser()`. `%` and `_` in the term act as SQL wildcards, and a blank term matches all of the user's tags.
 
 ### Using a Custom User
 
@@ -313,7 +382,6 @@ Please review [our security policy](../../security/policy) on how to report secu
 ## Roadmap
 
 Future releases may include:
-- Tag management utilities (`Tag::forUser()`, tag search/autocomplete)
 - Events (`UserTagAttached`, `UserTagDetached`, `UserTagCreated`)
 - Tag metadata (colors, icons via JSON column)
 - Tag usage statistics

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `userTagsFor()` relation for one user's tags on a model; `with('userTagsFor')` eager loads the authenticated user's tags
+- `OwnsUserTags` trait for the User model, with an `ownedUserTags()` relationship
+- `UserTag::forUser()` scope, and `containing()` for searching tag names, for example for autocomplete
+- `withAnyUserTags()`, `withAllUserTags()` and `withoutUserTags()` accept `UserTag` instances; another user's instance throws `TagNotOwnedException`
+
 ## [1.2.0] - 2026-10-26
 
 ### Fixed
