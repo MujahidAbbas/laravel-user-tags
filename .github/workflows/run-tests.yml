@@ -85,3 +85,15 @@ jobs:
 
       - name: Check code style
         run: vendor/bin/pint --test
+
+  # The one check main-protection requires. `if: always()` is load-bearing: a skipped
+  # job reports success, so a failed test run would otherwise let the merge through.
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [test, static-analysis, code-style]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every job succeeded
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
