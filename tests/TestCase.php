@@ -30,8 +30,9 @@ class TestCase extends Orchestra
 
     public function getEnvironmentSetUp($app): void
     {
-        // Use SQLite in-memory database for tests
-        $app['config']->set('database.default', 'testing');
+        // Use SQLite in-memory database for tests, unless DB_CONNECTION picks
+        // another configured connection (CI sets mysql with the DB_* variables)
+        $app['config']->set('database.default', env('DB_CONNECTION', 'testing'));
         $app['config']->set('database.connections.testing', [
             'driver' => 'sqlite',
             'database' => ':memory:',

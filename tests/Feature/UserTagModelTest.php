@@ -94,6 +94,18 @@ test('non-latin and emoji names get their own tags', function () {
     expect(UserTag::count())->toBe(3);
 });
 
+test('names that differ by accents, sharp s or emoji stay separate tags', function (array $names) {
+    $post = Post::create(['title' => 'P']);
+
+    $post->attachUserTag($names, $this->user);
+
+    expect(UserTag::orderBy('id')->pluck('name')->all())->toBe($names);
+})->with([
+    'accents' => [['résumé', 'resume']],
+    'sharp s' => [['straße', 'strasse']],
+    'emoji' => [['🔥', '🍕']],
+]);
+
 test('renaming a tag updates its slug', function () {
     $post = Post::create(['title' => 'P']);
     $post->attachUserTag('Old Name', $this->user);
