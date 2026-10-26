@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
 use MujahidAbbas\LaravelUserTags\Exceptions\NoAuthenticatedUserException;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\Post;
+use MujahidAbbas\LaravelUserTags\Tests\Fixtures\SoftDeletingPost;
 use MujahidAbbas\LaravelUserTags\Tests\Fixtures\User;
 
 beforeEach(function () {
@@ -147,4 +149,65 @@ test('methods return model instance for chaining', function () {
 
     $syncResult = $this->post->syncUserTags(['new']);
     expect($syncResult)->toBe($this->post);
+});
+
+test('attach treats names that differ only by case or spacing as one tag', function () {
+    $this->post->attachUserTag(['Important', ' important ', 'IMPORTANT'], $this->user);
+
+    expect($this->post->userTags()->count())->toBe(1);
+    expect(UserTag::count())->toBe(1);
+});
+
+test('attach skips blank tag names', function () {
+    $this->post->attachUserTag(['', '   ', 'real'], $this->user);
+
+    expect(UserTag::pluck('name')->all())->toBe(['real']);
+});
+
+test('sync with names that differ only by case attaches one tag', function () {
+    $this->post->attachUserTag(['old1', 'old2'], $this->user);
+
+    $this->post->syncUserTags(['Important', 'important'], $this->user);
+
+    expect($this->post->userTags()->pluck('name')->all())->toBe(['Important']);
+});
+
+// Model deletion tests
+
+test('deleting a model removes its tag attachments', function () {
+    $this->post->attachUserTag(['x', 'y'], $this->user);
+
+    $this->post->delete();
+
+    expect(DB::table('user_taggables')->count())->toBe(0);
+    expect(UserTag::count())->toBe(2);
+});
+
+test('soft deleting a model keeps its tag attachments', function () {
+    $post = SoftDeletingPost::create(['title' => 'Soft']);
+    $post->attachUserTag('kept', $this->user);
+
+    $post->delete();
+
+    expect(DB::table('user_taggables')->count())->toBe(1);
+});
+
+test('force deleting a soft deletable model removes its tag attachments', function () {
+    $post = SoftDeletingPost::create(['title' => 'Soft']);
+    $post->attachUserTag('gone', $this->user);
+
+    $post->forceDelete();
+
+    expect(DB::table('user_taggables')->count())->toBe(0);
+});
+
+test('sync keeps existing tags when the attach fails', function () {
+    $this->post->attachUserTag('keep-me', $this->user);
+    $deleted = UserTag::create(['user_id' => $this->user->id, 'name' => 'deleted']);
+    $deleted->delete();
+
+    // The stale instance's id no longer exists, so the attach hits the foreign key
+    expect(fn () => $this->post->syncUserTags([$deleted], $this->user))->toThrow(Exception::class);
+
+    expect($this->post->userTags()->pluck('name')->all())->toBe(['keep-me']);
 });

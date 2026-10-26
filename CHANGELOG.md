@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Passing another user's `UserTag` instance to `attachUserTag()`, `detachUserTag()` or `syncUserTags()` now throws `TagNotOwnedException` instead of acting on that user's tag
+- `syncUserTags()` no longer leaves a user's tags detached when the attach fails: it runs in a transaction, and names that resolve to the same tag are attached once
+- `withAllUserTags()` no longer returns nothing when the same name is given twice in different case
+- Deleting a tagged model now removes its tag attachments; soft-deleted models keep them until force deleted
+- Renaming a tag now updates its slug, so it is found by its new name
+- Blank tag names are skipped instead of creating an empty tag
+
+### Changed
+
+- Tags are matched on the lowercased, whitespace-squished name instead of `Str::slug()`. `C++` and `C#` are now separate tags, and non-Latin and emoji names no longer collapse into one tag. Existing rows need a one-time re-slug, see "Upgrading from 1.1.0" in the README
+- The test suite now runs the shipped migration stubs instead of copies of them
+
 ## [1.1.0] - 2026-10-26
 
 ### Added

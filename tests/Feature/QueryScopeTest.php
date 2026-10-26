@@ -119,3 +119,11 @@ test('scopes are user isolated', function () {
     expect($resultsB)->toHaveCount(1);
     expect($resultsB->first()->id)->toBe($this->post2->id);
 });
+
+test('withAllUserTags matches names that differ only by case', function () {
+    $this->post1->attachUserTag('alpha', $this->user);
+
+    $results = Post::withAllUserTags(['alpha', 'Alpha'], $this->user)->get();
+
+    expect($results->pluck('id')->all())->toBe([$this->post1->id]);
+});

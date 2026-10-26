@@ -8,12 +8,29 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use MujahidAbbas\LaravelUserTags\Exceptions\NoAuthenticatedUserException;
+use MujahidAbbas\LaravelUserTags\Exceptions\TagNotOwnedException;
 use MujahidAbbas\LaravelUserTags\Models\UserTag;
 
 trait HasUserTags
 {
+    /**
+     * Remove tag attachments when the model is deleted.
+     *
+     * The polymorphic pivot has no foreign key to the model, so nothing else cleans
+     * it up. Soft deletes keep the attachments so a restore brings the tags back.
+     */
+    public static function bootHasUserTags(): void
+    {
+        static::deleted(function (self $model) {
+            if (method_exists($model, 'isForceDeleting') && ! $model->isForceDeleting()) {
+                return;
+            }
+
+            $model->userTags()->detach();
+        });
+    }
+
     /**
      * Get all user tags attached to this model.
      *
@@ -41,6 +58,7 @@ trait HasUserTags
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
+     * @throws TagNotOwnedException
      */
     public function attachUserTag(string|array|UserTag $tags, ?Authenticatable $user = null): static
     {
@@ -62,6 +80,7 @@ trait HasUserTags
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
+     * @throws TagNotOwnedException
      */
     public function detachUserTag(string|array|UserTag $tags, ?Authenticatable $user = null): static
     {
@@ -83,22 +102,27 @@ trait HasUserTags
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
+     * @throws TagNotOwnedException
      */
     public function syncUserTags(string|array|UserTag $tags, ?Authenticatable $user = null): static
     {
         $user = $this->resolveUser($user);
-        $newTags = $this->findOrCreateUserTags($tags, $user);
 
-        // Get existing tag IDs for this user on this model
-        $existingIds = $this->userTags()
-            ->where('user_id', $user->getAuthIdentifier())
-            ->pluck($this->getUserTagTableName().'.id');
+        // A failed attach must not leave the user's tags detached
+        $this->getConnection()->transaction(function () use ($tags, $user) {
+            $newTags = $this->findOrCreateUserTags($tags, $user);
 
-        // Detach existing tags for this user
-        $this->userTags()->detach($existingIds);
+            // Get existing tag IDs for this user on this model
+            $existingIds = $this->userTags()
+                ->where('user_id', $user->getAuthIdentifier())
+                ->pluck($this->getUserTagTableName().'.id');
 
-        // Attach new tags
-        $this->userTags()->attach($newTags->pluck('id'));
+            // Detach existing tags for this user
+            $this->userTags()->detach($existingIds);
+
+            // Attach new tags
+            $this->userTags()->attach($newTags->pluck('id'));
+        });
 
         return $this;
     }
@@ -126,30 +150,39 @@ trait HasUserTags
      *
      * Accepts strings, arrays of strings, or UserTag instances.
      * Creates tags if they don't exist using firstOrCreate.
+     * Blank names are skipped and names resolving to the same tag are returned once.
      *
      * @param  string|array<string>|UserTag  $tags
      * @return Collection<int, UserTag>
+     *
+     * @throws TagNotOwnedException
      */
     protected function findOrCreateUserTags(string|array|UserTag $tags, Authenticatable $user): Collection
     {
         $tagClass = $this->getUserTagClassName();
         $tags = Arr::wrap($tags);
 
-        return collect($tags)->map(function ($tag) use ($tagClass, $user) {
-            if ($tag instanceof $tagClass) {
-                return $tag;
-            }
+        return collect($tags)
+            ->reject(fn ($tag) => ! $tag instanceof $tagClass && $tagClass::slugFromName($tag) === '')
+            ->map(function ($tag) use ($tagClass, $user) {
+                if ($tag instanceof $tagClass) {
+                    $this->ensureUserOwnsTag($tag, $user);
 
-            return $tagClass::firstOrCreate(
-                [
-                    'user_id' => $user->getAuthIdentifier(),
-                    'slug' => Str::slug($tag),
-                ],
-                [
-                    'name' => $tag,
-                ]
-            );
-        });
+                    return $tag;
+                }
+
+                return $tagClass::firstOrCreate(
+                    [
+                        'user_id' => $user->getAuthIdentifier(),
+                        'slug' => $tagClass::slugFromName($tag),
+                    ],
+                    [
+                        'name' => $tag,
+                    ]
+                );
+            })
+            ->unique(fn (UserTag $tag) => $tag->getKey())
+            ->values();
     }
 
     /**
@@ -160,6 +193,8 @@ trait HasUserTags
      *
      * @param  string|array<string>|UserTag  $tags
      * @return Collection<int, UserTag>
+     *
+     * @throws TagNotOwnedException
      */
     protected function resolveUserTags(string|array|UserTag $tags, Authenticatable $user): Collection
     {
@@ -168,13 +203,45 @@ trait HasUserTags
 
         return collect($tags)->map(function ($tag) use ($tagClass, $user) {
             if ($tag instanceof $tagClass) {
+                $this->ensureUserOwnsTag($tag, $user);
+
                 return $tag;
             }
 
             return $tagClass::where('user_id', $user->getAuthIdentifier())
-                ->where('slug', Str::slug($tag))
+                ->where('slug', $tagClass::slugFromName($tag))
                 ->first();
         })->filter();
+    }
+
+    /**
+     * Ensure a tag instance passed in by the caller belongs to the given user.
+     *
+     * @throws TagNotOwnedException
+     */
+    protected function ensureUserOwnsTag(UserTag $tag, Authenticatable $user): void
+    {
+        if ((string) $tag->user_id !== (string) $user->getAuthIdentifier()) {
+            throw new TagNotOwnedException;
+        }
+    }
+
+    /**
+     * Convert tag names to their distinct, non-blank slugs.
+     *
+     * @param  string|array<string>  $tags
+     * @return array<string>
+     */
+    protected function resolveTagSlugs(string|array $tags): array
+    {
+        $tagClass = $this->getUserTagClassName();
+
+        return collect(Arr::wrap($tags))
+            ->map(fn ($tag) => $tagClass::slugFromName($tag))
+            ->reject(fn ($slug) => $slug === '')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
@@ -189,13 +256,11 @@ trait HasUserTags
     protected function resolveTagIds(string|array $tags, Authenticatable $user): array
     {
         $tagClass = $this->getUserTagClassName();
-        $tags = Arr::wrap($tags);
+        $slugs = $this->resolveTagSlugs($tags);
 
-        if (empty($tags)) {
+        if (empty($slugs)) {
             return [];
         }
-
-        $slugs = collect($tags)->map(fn ($tag) => Str::slug($tag))->all();
 
         return $tagClass::query()
             ->where('user_id', $user->getAuthIdentifier())
@@ -244,11 +309,10 @@ trait HasUserTags
         ?Authenticatable $user = null
     ): Builder {
         $user = $this->resolveUser($user);
-        $tags = Arr::wrap($tags);
         $tagIds = $this->resolveTagIds($tags, $user);
 
         // If any tag doesn't exist, no model can have "all" of them
-        if (count($tagIds) !== count($tags)) {
+        if (count($tagIds) !== count($this->resolveTagSlugs($tags))) {
             return $query->whereRaw('0 = 1');
         }
 
