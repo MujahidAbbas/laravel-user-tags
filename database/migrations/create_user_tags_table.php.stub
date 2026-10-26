@@ -12,7 +12,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('slug');
+            $slug = $table->string('slug');
+
+            // Slugs are lowercased in PHP, so compare them byte for byte. MySQL's usual
+            // collations treat é and e or ß and ss as equal (utf8mb4_unicode_ci also 🔥
+            // and 🍕), which merged different names into one tag.
+            if (in_array(Schema::getConnection()->getDriverName(), ['mysql', 'mariadb'])) {
+                $slug->collation('utf8mb4_bin');
+            }
+
             $table->timestamps();
 
             $table->unique(['user_id', 'slug']);
