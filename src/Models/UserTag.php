@@ -2,6 +2,8 @@
 
 namespace MujahidAbbas\LaravelUserTags\Models;
 
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -94,5 +96,25 @@ class UserTag extends Model
             'tag_id',
             'taggable_id'
         );
+    }
+
+    /**
+     * Scope a query to the tags owned by the given user.
+     */
+    public function scopeForUser(Builder $query, Authenticatable $user): Builder
+    {
+        return $query->where($this->qualifyColumn('user_id'), $user->getAuthIdentifier());
+    }
+
+    /**
+     * Scope a query to tags whose name contains the given term.
+     *
+     * Matches on the slug, so case and extra whitespace are ignored on every
+     * database. This does not limit the query to a user: chain it after
+     * forUser() or ownedUserTags(). % and _ in the term act as wildcards.
+     */
+    public function scopeContaining(Builder $query, string $term): Builder
+    {
+        return $query->whereLike($this->qualifyColumn('slug'), '%'.static::slugFromName($term).'%');
     }
 }
