@@ -2,7 +2,7 @@
 
 ## Release
 - [x] Version: 1.2.0, not 1.1.1, because the slug change needs existing rows re-slugged (Mujahid, 2026-10-26).
-- [ ] Merge the `fix/isolation-and-tag-matching` PR, tag v1.2.0, check Packagist picked it up.
+- [x] Released v1.2.0 on 2026-10-26: PR #5 rebase-merged, tag and GitHub Release published, Packagist lists it at `6a44e9c`.
 
 ## Features (not started; the package is not on current-priorities)
 - [ ] `userTagsFor($user)` relation, eager-loadable, so callers stop loading every user's tags and filtering in PHP (the README still shows `$article->userTags->where('user_id', ...)`).
