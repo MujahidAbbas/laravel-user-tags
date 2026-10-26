@@ -56,6 +56,8 @@ php artisan vendor:publish --tag="user-tags-migrations"
 php artisan migrate
 ```
 
+Users or tagged models with UUID or ULID keys, or users in a table other than `users`? Edit the published migrations before running `migrate`, see [UUID and ULID Keys](#uuid-and-ulid-keys).
+
 Optionally, you can publish the config file:
 
 ```bash
@@ -67,9 +69,14 @@ php artisan vendor:publish --tag="user-tags-config"
 The published config file (`config/user-tags.php`) contains:
 
 ```php
+use MujahidAbbas\LaravelUserTags\Models\UserTag;
+
 return [
     // Your User model class
     'user_model' => 'App\\Models\\User',
+
+    // The tag model class; extend UserTag to add your own behaviour
+    'tag_model' => UserTag::class,
 
     // Table names (customize if needed)
     'tables' => [
@@ -349,6 +356,28 @@ public function boot(): void
 ```
 
 This ensures stable, clean identifiers in your `user_taggables` table instead of full class paths.
+
+## UUID and ULID Keys
+
+The published migrations assume integer keys and a `users` table. If your users or tagged models use UUIDs or ULIDs, or your users live in another table, edit the two migrations before running `migrate`.
+
+In `create_user_tags_table`, let your user model decide the column type and the table:
+
+```php
+// Instead of: $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+$table->foreignIdFor(config('user-tags.user_model'), 'user_id')->constrained()->cascadeOnDelete();
+```
+
+That gives a UUID column for a model using `HasUuids`, a ULID column for `HasUlids` and an integer otherwise, pointing at the model's own table.
+
+In `create_user_taggables_table`, match the key type of the models you tag:
+
+```php
+// Instead of: $table->morphs('taggable');
+$table->uuidMorphs('taggable'); // or ulidMorphs('taggable')
+```
+
+If your app calls `Schema::morphUsingUuids()` or `Schema::morphUsingUlids()` in a service provider, `morphs()` already does this and needs no edit. The table has one `taggable_id` column, so all the models you tag need the same key type.
 
 ## Upgrading from 1.3.0
 
