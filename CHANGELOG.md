@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-26
+
 ### Fixed
 
 - On MySQL and MariaDB, tag names that differ only by accents, `ß`/`ss` or emoji (`résumé` and `resume`, `🔥` and `🍕`) were merged into one tag, and `containing()` ignored accents, because `slug` used the connection's collation. The migration now gives `slug` a binary collation. Existing installs need the migration in "Upgrading from 1.3.0" in the README
@@ -73,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publishable migrations and config
 - `NoAuthenticatedUserException` for missing authentication context
 
-[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.0.0...v1.1.0
