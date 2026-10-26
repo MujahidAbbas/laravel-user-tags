@@ -5,10 +5,12 @@ namespace MujahidAbbas\LaravelUserTags\Tests\Fixtures;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use MujahidAbbas\LaravelUserTags\Traits\OwnsUserTags;
 
 class User extends Authenticatable
 {
     use HasFactory;
+    use OwnsUserTags;
 
     /**
      * The attributes that are mass assignable.
