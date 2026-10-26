@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `UserTag::forUser()` scope, and `containing()` for searching tag names, for example for autocomplete
 - `withAnyUserTags()`, `withAllUserTags()` and `withoutUserTags()` accept `UserTag` instances; another user's instance throws `TagNotOwnedException`
 
+### Fixed
+
+- With `tag_model` set to a subclass, passing a base `UserTag` instance (as `UserTag::find()` returns) skipped the ownership check and created a tag named after the instance's JSON, which could copy another user's tag name into the caller's tags. It is now treated as the tag it is, and another user's instance throws `TagNotOwnedException`
+
 ## [1.2.0] - 2026-10-26
 
 ### Fixed

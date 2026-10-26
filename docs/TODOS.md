@@ -14,6 +14,7 @@
 ## Smaller issues
 - [ ] README config section is missing the `tag_model` key.
 - [ ] `NoAuthenticatedUserException::render()` always returns 401 JSON, even for web requests; the usual cause is a job or command with no user passed, which is a developer error.
-- [ ] From reading the code, not run: with `tag_model` set to a subclass, passing a base `UserTag` instance fails the `instanceof $tagClass` check and reaches `slugFromName()` as an object (TypeError). The query scopes now go through the same check, so one fix covers both.
+- [x] With `tag_model` set to a subclass, a base `UserTag` instance skipped the ownership check and became a tag named after its JSON, not a TypeError: models cast to string outside strict_types. Fixed on `read-side-features` by checking against the base class (2026-10-26).
+- [ ] Any other object in a tag array (say `attachUserTag([$post])`) is still cast to its JSON and becomes a tag name. Rejecting values that are neither strings nor `UserTag` would close it; developer error, not an isolation issue.
 - [ ] `findOrCreateUserTags()` runs one query per tag name; fine at current scale.
 - [ ] `tests/Fixtures/User.php` `newFactory()` fails PHPStan `return.type` (anonymous `Factory` vs `Factory<static>`). Harmless while the fixture stays out of the analysed paths.

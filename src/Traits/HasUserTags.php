@@ -75,7 +75,7 @@ trait HasUserTags
      *
      * Creates tags if they don't exist. Uses syncWithoutDetaching to prevent duplicates.
      *
-     * @param  string|array<string>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
@@ -97,7 +97,7 @@ trait HasUserTags
      * Does not delete the tag itself, only removes the association.
      * Silently ignores tags that don't exist.
      *
-     * @param  string|array<string>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
@@ -119,7 +119,7 @@ trait HasUserTags
      * Replaces all of this user's tags on this model with exactly those specified.
      * Tags from other users are not affected.
      *
-     * @param  string|array<string>|UserTag  $tags  Tag name(s) or UserTag instance(s)
+     * @param  string|array<string|UserTag>|UserTag  $tags  Tag name(s) or UserTag instance(s)
      * @param  Authenticatable|null  $user  Optional user override (defaults to Auth::user())
      *
      * @throws NoAuthenticatedUserException
@@ -173,7 +173,7 @@ trait HasUserTags
      * Creates tags if they don't exist using firstOrCreate.
      * Blank names are skipped and names resolving to the same tag are returned once.
      *
-     * @param  string|array<string>|UserTag  $tags
+     * @param  string|array<string|UserTag>|UserTag  $tags
      * @return Collection<int, UserTag>
      *
      * @throws TagNotOwnedException
@@ -183,10 +183,13 @@ trait HasUserTags
         $tagClass = $this->getUserTagClassName();
         $tags = Arr::wrap($tags);
 
+        // Instance checks here and below use the base class: with a subclass as tag_model,
+        // UserTag::find() still returns base instances, which would otherwise be cast to a
+        // JSON string and treated as a tag name, skipping the ownership check
         return collect($tags)
-            ->reject(fn ($tag) => ! $tag instanceof $tagClass && $tagClass::slugFromName($tag) === '')
+            ->reject(fn ($tag) => ! $tag instanceof UserTag && $tagClass::slugFromName($tag) === '')
             ->map(function ($tag) use ($tagClass, $user) {
-                if ($tag instanceof $tagClass) {
+                if ($tag instanceof UserTag) {
                     $this->ensureUserOwnsTag($tag, $user);
 
                     return $tag;
@@ -212,7 +215,7 @@ trait HasUserTags
      * Similar to findOrCreateUserTags but does not create tags.
      * Filters out tags that don't exist (silently ignores them).
      *
-     * @param  string|array<string>|UserTag  $tags
+     * @param  string|array<string|UserTag>|UserTag  $tags
      * @return Collection<int, UserTag>
      *
      * @throws TagNotOwnedException
@@ -223,7 +226,7 @@ trait HasUserTags
         $tags = Arr::wrap($tags);
 
         return collect($tags)->map(function ($tag) use ($tagClass, $user) {
-            if ($tag instanceof $tagClass) {
+            if ($tag instanceof UserTag) {
                 $this->ensureUserOwnsTag($tag, $user);
 
                 return $tag;
@@ -258,7 +261,7 @@ trait HasUserTags
         $tagClass = $this->getUserTagClassName();
 
         return collect(Arr::wrap($tags))
-            ->map(fn ($tag) => $tag instanceof $tagClass ? $tag->slug : $tagClass::slugFromName($tag))
+            ->map(fn ($tag) => $tag instanceof UserTag ? $tag->slug : $tagClass::slugFromName($tag))
             ->reject(fn ($slug) => $slug === '')
             ->unique()
             ->values()
@@ -281,7 +284,7 @@ trait HasUserTags
         $tagClass = $this->getUserTagClassName();
 
         collect(Arr::wrap($tags))
-            ->filter(fn ($tag) => $tag instanceof $tagClass)
+            ->filter(fn ($tag) => $tag instanceof UserTag)
             ->each(fn (UserTag $tag) => $this->ensureUserOwnsTag($tag, $user));
 
         // Instances resolve through their slug like names do, so a tag passed both
