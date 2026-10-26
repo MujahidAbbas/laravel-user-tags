@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-26
+
 ### Fixed
 
 - `attachUserTag()` with a tag name before another user's `UserTag` instance, for example `attachUserTag(['new name', $othersTag])`, created `new name` in the caller's tags before throwing `TagNotOwnedException`, and left it attached to nothing. Every instance's owner is now checked before any tag is created. `syncUserTags()` already rolled the tag back, and `detachUserTag()` and the query scopes create no tags
@@ -94,7 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publishable migrations and config
 - `NoAuthenticatedUserException` for missing authentication context
 
-[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/mujahidabbas/laravel-user-tags/compare/v1.2.0...v1.3.0
