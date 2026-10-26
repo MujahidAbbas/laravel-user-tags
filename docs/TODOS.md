@@ -6,7 +6,7 @@
 
 ## Features (the package is not on current-priorities)
 - [x] Read-side features, built 2026-10-26 on branch `read-side-features`: `userTagsFor()`, `UserTag::forUser()` and `containing()`, the `OwnsUserTags` trait (`ownedUserTags()`, not `userTags()`, to avoid a trait collision), and query scopes that accept `UserTag` instances. Design choices are in each commit message.
-- [ ] Push the branch, open the PR, then release as 1.3.0 (additive, so minor). Waiting on Mujahid.
+- [ ] Review and merge PR #7, then release as 1.3.0 (additive, so minor). The subclass ownership fix rides along rather than a 1.2.1 patch (Mujahid, 2026-10-26).
 - [ ] Scopes and write methods don't accept a Collection (spatie/laravel-tags takes `ArrayAccess`); callers pass `->all()` for now.
 - [ ] Document UUID/ULID setups: the stubs use `foreignId('user_id')->constrained()` (assumes a bigint `users` table, ignores `user_model`) and `morphs()` (bigint taggable ids).
 - Parked until someone asks: events, tag metadata (colors), usage stats.
